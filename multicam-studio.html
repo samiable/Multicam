@@ -14,6 +14,10 @@ textarea{width:100%;height:64px;font-size:11px;margin:4px 0}
 input[type=range]{width:100%;padding:0}label{display:block;margin:6px 0;color:var(--m)}label span{color:var(--t)}
 .t{border:2px solid transparent;border-radius:8px;padding:4px}.t.pv{border-color:var(--g)}.t.pg{border-color:var(--a)}
 .lv{height:6px;width:70px;background:var(--l) linear-gradient(var(--g),var(--g)) no-repeat;background-size:0 100%;border-radius:3px}
+.g3o,#fr.g3{background:linear-gradient(90deg,transparent calc(33.33% - .5px),#fff9 0,#fff9 calc(33.33% + .5px),transparent 0,transparent calc(66.66% - .5px),#fff9 0,#fff9 calc(66.66% + .5px),transparent 0),linear-gradient(transparent calc(33.33% - .5px),#fff9 0,#fff9 calc(33.33% + .5px),transparent 0,transparent calc(66.66% - .5px),#fff9 0,#fff9 calc(66.66% + .5px),transparent 0)}
+.g3o{position:absolute;inset:0;pointer-events:none;border-radius:6px}
+#ov{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:6px;display:flex;align-items:center;justify-content:center}
+#fr{display:none;border:1px solid #fff8}
 #sl{position:fixed;inset:0;background:#fff;color:#fff;display:none;z-index:9;align-items:center;justify-content:center;font-size:11vw;font-weight:900;text-align:center;line-height:1.1}
 .hide{display:none!important}.m{color:var(--m);font-style:normal}
 </style></head><body>
@@ -24,8 +28,14 @@ input[type=range]{width:100%;padding:0}label{display:block;margin:6px 0;color:va
 <div id="M" class="hide">
 <details class="p" open><summary><h3>Project</h3></summary><div class="r"><select id="pl" onchange="ld(this.value)"></select><button onclick="np()">New</button><button onclick="dp()">Duplicate</button><button onclick="xp()">Delete</button><button onclick="sv();alert('Saved')">Save</button></div></details>
 <details class="p" open><summary><h3>Cameras</h3></summary><div id="cl"></div><button class="a" onclick="addCam()">Add camera</button></details>
-<details class="p" open><summary><h3>Switcher</h3></summary><canvas id="pgm" width="960" height="540"></canvas>
+<details class="p" open><summary><h3>Switcher</h3></summary><div id="pw" style="position:relative"><canvas id="pgm" width="960" height="540"></canvas><div id="g3m" class="g3o hide"></div></div>
 <div class="r" style="margin:8px 0"><button class="a" onclick="cut()">CUT</button><button onclick="dsv()">DISSOLVE</button><span class="m">Tap a feed to preview, then cut. Green is preview, red is program.</span></div><div class="g" id="tg"></div></details>
+<details class="p" open><summary><h3>Output and files</h3></summary>
+<div class="r"><select id="ar" onchange="fmt()"><option value="1.7778">16:9</option><option value="1.3333">4:3</option><option value="1.5">3:2 (full frame)</option><option value="1">1:1</option><option value="1.25">5:4</option><option value="1.85">1.85:1 (cinema)</option><option value="2">2:1</option><option value="2.35">2.35:1 (cinemascope)</option><option value="2.39">2.39:1 (anamorphic)</option><option value="2.3333">21:9</option><option value="1.43">1.43:1 (IMAX)</option></select><button id="or" data-p="0" onclick="this.dataset.p=this.dataset.p=='1'?'0':'1';this.textContent=this.dataset.p=='1'?'Portrait':'Landscape';fmt()">Landscape</button></div>
+<label><input id="cf" type="checkbox" checked onchange="crop=this.checked"> Crop to fill (off = black bars)</label>
+<label><input type="checkbox" onchange="$('g3m').classList.toggle('hide',!this.checked)"> Rule of thirds grid (not recorded)</label>
+<div class="r"><input id="pn" placeholder="Name prefix (default: project)" oninput="keep(this)"><input id="dr" placeholder="Save folder" value="MultiCam" oninput="keep(this)"></div>
+<div class="m">In the Android app, files go to Downloads/your folder. In a browser they go to your normal Downloads.</div></details>
 <details class="p" open><summary><h3>Camera controls</h3></summary><div class="r" id="cb"></div><div id="cc"></div><div class="r"><button onclick="auto()">Auto exposure / WB / focus</button><select id="lkm" onchange="look(this.value)"><option value="none">Look: none</option><option value="vivid">Vivid</option><option value="cine">Cinematic</option><option value="bw">Black and white</option><option value="warm">Warm</option><option value="cool">Cool</option></select></div></details>
 <details class="p" open><summary><h3>Record and sync</h3></summary>
 <div class="r"><button class="a" id="rph" onclick="recPh()">REC PHONES</button><button class="a" id="rpg" onclick="recP()">REC PROGRAM</button><button class="a" onclick="recPh();recP()">REC ALL</button></div>
@@ -41,7 +51,10 @@ input[type=range]{width:100%;padding:0}label{display:block;margin:6px 0;color:va
 
 <div id="C" class="hide">
 <div class="p"><h3>Camera</h3><div class="r" style="margin-top:8px"><select id="fc"><option value="environment">Back</option><option value="user">Front</option></select><select id="rs"><option value="1280">720p</option><option value="1920" selected>1080p</option><option value="3840">4K</option></select><button class="a" onclick="startCam()">Start camera</button></div></div>
-<div class="p"><video id="pv" autoplay playsinline muted></video><div id="cs" class="m">Camera off</div></div>
+<div class="p"><div style="position:relative"><video id="pv" autoplay playsinline muted></video><div id="ov"><div id="fr"></div></div></div><div id="cs" class="m">Camera off</div></div>
+<div class="p"><div class="r"><select id="pa" onchange="guides()"><option value="0">Guide: none</option><option value="1.7778">16:9</option><option value="1.3333">4:3</option><option value="1.5">3:2 (full frame)</option><option value="1">1:1</option><option value="1.25">5:4</option><option value="1.85">1.85:1 (cinema)</option><option value="2">2:1</option><option value="2.35">2.35:1 (cinemascope)</option><option value="2.39">2.39:1 (anamorphic)</option><option value="2.3333">21:9</option><option value="1.43">1.43:1 (IMAX)</option></select><button id="or2" data-p="0" onclick="orient()">Landscape</button><label style="margin:0"><input id="pg3" type="checkbox" onchange="guides()"> Thirds grid</label></div>
+<div class="r" style="margin-top:8px"><input id="nm" placeholder="Camera name" oninput="keep(this);snd({t:'nm',n:nmv()})"><input id="dr2" placeholder="Save folder" value="MultiCam" oninput="keep(this)"></div>
+<div class="m">The frame guide and grid are on screen only and are not recorded. Folder works in the Android app.</div></div>
 <div class="p"><div class="r"><input id="cd" inputmode="numeric" placeholder="Code from the monitor" style="flex:1;font-size:20px"><button class="a" onclick="join()">Connect</button></div>
 <details style="margin-top:8px"><summary class="m">Offline pairing (no internet)</summary>1) Paste the code from the monitor<textarea id="of"></textarea><button onclick="reply()">Make reply</button>
 <div style="margin-top:8px">2) Send this reply back to the monitor</div><textarea id="an" readonly></textarea><button onclick="cpy('an')">Copy reply</button></details></div>
@@ -96,7 +109,8 @@ function conn(i){try{cams[i].pc.setRemoteDescription(JSON.parse(atob($('an'+i).v
 function sync(c){c.rtt=1e9;let n=0;const t=setInterval(()=>{tx(c,{t:'ping',s:Date.now()});if(++n>=10)clearInterval(t)},120);setTimeout(()=>sync(c),30000)}
 function onMsg(c,m){
  if(m.t=='pong'){const r=Date.now()-m.s;if(r<c.rtt){c.rtt=r;c.off=m.c-(m.s+r/2)}sync_ui()}
- else if(m.t=='caps'){c.caps=m.caps;c.res=m.w+'x'+m.h;const s=pj().cs[c.i]||{};for(const k in s)tx(c,{t:'cap',k,v:s[k]});if(sel==c.i)sliders();sync_ui()}
+ else if(m.t=='caps'){c.caps=m.caps;if(m.n)rn(c,m.n);c.res=m.w+'x'+m.h;const s=pj().cs[c.i]||{};for(const k in s)tx(c,{t:'cap',k,v:s[k]});if(sel==c.i)sliders();sync_ui()}
+ else if(m.t=='nm')rn(c,m.n);
  else if(m.t=='rs'){log.push({ev:m.on?'phone_rec_start':'phone_rec_stop',cam:c.i+1,monitor_time:iso(m.c-c.off),cam_clock:iso(m.c),offset_ms:Math.round(c.off),rtt_ms:Math.round(c.rtt),file:m.f||''});sync_ui()}
  else if(m.t=='ac'){log.push({ev:'phone_action',cam:c.i+1,monitor_time:iso(m.c-c.off)});sync_ui()}
 }
@@ -104,7 +118,7 @@ function sync_ui(){$('sy').innerHTML=cams.map(c=>`Cam ${c.i+1}: offset ${Math.ro
 /* feeds, audio */
 function hook(c){
  actx();const t=document.createElement('div');t.className='t';
- t.innerHTML=`<video autoplay playsinline muted></video><div class="r"><b>Cam ${c.i+1}</b><span class="lv"></span></div><div class="r"><button class="on" title="Include audio in program recording">Mix</button><button title="Listen on this device">Listen</button><button title="Also record this raw feed on the tablet">ISO rec</button></div><input type="range" min="1" max="4" step=".1" value="1" title="Software zoom">`;
+ t.innerHTML=`<video autoplay playsinline muted></video><div class="r"><b class="nl">Cam ${c.i+1}</b><span class="lv"></span></div><div class="r"><button class="on" title="Include audio in program recording">Mix</button><button title="Listen on this device">Listen</button><button title="Also record this raw feed on the tablet">ISO rec</button></div><input type="range" min="1" max="4" step=".1" value="1" title="Software zoom">`;
  $('tg').append(t);c.t=t;c.v=t.children[0];c.lvEl=t.querySelector('.lv');c.v.srcObject=c.ms;
  const au=new Audio();au.srcObject=c.ms;au.muted=true;au.play().catch(()=>{});
  const s=AC.createMediaStreamSource(c.ms);c.an=AC.createAnalyser();c.an.fftSize=256;c.gm=AC.createGain();c.gl=AC.createGain();c.gl.gain.value=0;
@@ -122,7 +136,7 @@ function cut(){if(pvI<0)return;[pgI,pvI]=[pvI,pgI<0?pvI:pgI];marks()}
 function dsv(){if(pvI>=0&&pgI>=0&&!dis)dis={f:pgI,t:pvI,t0:Date.now()}}
 /* compositor */
 const pg=$('pgm'),X=pg.getContext('2d',{willReadFrequently:true}),bf=new Uint8Array(256);
-function dc(i,a){const c=cams[i],v=c&&c.v;if(!v||!v.videoWidth)return;const W=pg.width,H=pg.height,sw=v.videoWidth/c.z,sh=v.videoHeight/c.z,k=Math.min(W/sw,H/sh);X.globalAlpha=a;X.drawImage(v,(v.videoWidth-sw)/2,(v.videoHeight-sh)/2,sw,sh,(W-sw*k)/2,(H-sh*k)/2,sw*k,sh*k)}
+function dc(i,a){const c=cams[i],v=c&&c.v;if(!v||!v.videoWidth)return;const W=pg.width,H=pg.height,sw=v.videoWidth/c.z,sh=v.videoHeight/c.z,k=(crop?Math.max:Math.min)(W/sw,H/sh);X.globalAlpha=a;X.drawImage(v,(v.videoWidth-sw)/2,(v.videoHeight-sh)/2,sw,sh,(W-sw*k)/2,(H-sh*k)/2,sw*k,sh*k)}
 function draw(){
  const W=pg.width,H=pg.height;X.globalAlpha=1;X.filter='none';X.fillStyle='#000';X.fillRect(0,0,W,H);
  X.filter=`brightness(${grade.b}%) contrast(${grade.c}%) saturate(${grade.s}%)`;
@@ -147,17 +161,17 @@ function recP(){
  if(pr){pr.stop();isoR.forEach(r=>r.stop());return}
  const s=new MediaStream([...pg.captureStream(30).getVideoTracks(),...mixD.stream.getAudioTracks()]),m=mt(),t0=Date.now();
  pr=new MediaRecorder(s,{mimeType:m,videoBitsPerSecond:12e6});pch=[];pr.ondataavailable=e=>pch.push(e.data);
- pr.onstop=()=>{dl(new Blob(pch,{type:m}),`${cur}_program_${iso(t0).replace(/[:.]/g,'-')}.${ext(m)}`);log.push({ev:'program_rec_stop',monitor_time:iso(Date.now())});pr=0;isoR=[];$('rpg').textContent='REC PROGRAM'};
+ pr.onstop=()=>{dl(new Blob(pch,{type:m}),`${pre()}_program_${iso(t0).replace(/[:.]/g,'-')}.${ext(m)}`);log.push({ev:'program_rec_stop',monitor_time:iso(Date.now())});pr=0;isoR=[];$('rpg').textContent='REC PROGRAM'};
  pr.start(1000);log.push({ev:'program_rec_start',monitor_time:iso(t0)});$('rpg').textContent='STOP PROGRAM';
- isoR=cams.filter(c=>c.iso&&c.ms).map(c=>{const ch=[],r=new MediaRecorder(c.ms,{mimeType:m});r.ondataavailable=e=>ch.push(e.data);r.onstop=()=>dl(new Blob(ch,{type:m}),`${cur}_cam${c.i+1}_feed_${iso(t0).replace(/[:.]/g,'-')}.${ext(m)}`);r.start(1000);return r});
+ isoR=cams.filter(c=>c.iso&&c.ms).map(c=>{const ch=[],r=new MediaRecorder(c.ms,{mimeType:m});r.ondataavailable=e=>ch.push(e.data);r.onstop=()=>dl(new Blob(ch,{type:m}),`${pre()}_cam${c.i+1}${c.name?'_'+c.name:''}_feed_${iso(t0).replace(/[:.]/g,'-')}.${ext(m)}`);r.start(1000);return r});
  sync_ui()}
 function act(){const at=Date.now()+1200,sc=$('sc').value,tk=$('tk').value;cams.forEach(c=>tx(c,{t:'action',at:at+c.off,sc,tk}));log.push({ev:'action_sent',scene:sc,take:tk,planned_monitor_time:iso(at)});$('tk').value=+tk+1;sv();sync_ui()}
-const dlLog=()=>dl(new Blob([JSON.stringify({project:cur,exported:iso(Date.now()),events:log},null,1)],{type:'application/json'}),`${cur}_sync_log.json`);
+const dlLog=()=>dl(new Blob([JSON.stringify({project:cur,exported:iso(Date.now()),events:log},null,1)],{type:'application/json'}),`${pre()}_sync_log.json`);
 /* ---------- CAMERA ---------- */
 let st,pc,dc2,ac,dst,vs,ot,rc,ck=[],lk='none',cx,cvn=document.createElement('canvas'),lastB,lastN,camN='';
 function cam(){$('home').classList.add('hide');$('C').classList.remove('hide')}
 async function startCam(){
- st=await navigator.mediaDevices.getUserMedia({video:{facingMode:$('fc').value,width:{ideal:+$('rs').value},frameRate:{ideal:30}},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+ st=await navigator.mediaDevices.getUserMedia({video:{facingMode:$('fc').value,...(P2()?{height:{ideal:+$('rs').value}}:{width:{ideal:+$('rs').value}}),frameRate:{ideal:30}},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
  $('pv').srcObject=st;vs=ot=st.getVideoTracks()[0];ac=new AudioContext();dst=ac.createMediaStreamDestination();
  if(st.getAudioTracks().length)ac.createMediaStreamSource(st).connect(dst);
  try{await navigator.wakeLock.request('screen')}catch(e){}
@@ -179,7 +193,7 @@ async function reply(D){
 const snd=m=>dc2&&dc2.readyState=='open'&&dc2.send(JSON.stringify(m));
 function sendCaps(){const t=vs.getCapabilities?vs.getCapabilities():{},s=vs.getSettings(),o={};
  for(const k of['zoom','exposureCompensation','iso','exposureTime','colorTemperature','focusDistance'])if(t[k]&&t[k].max!=null)o[k]={min:t[k].min,max:t[k].max,step:t[k].step||0,v:s[k]};
- snd({t:'caps',caps:o,w:s.width,h:s.height})}
+ snd({t:'caps',caps:o,w:s.width,h:s.height,n:nmv()})}
 async function setC(k,v){const a={[k]:v};if(k=='iso'||k=='exposureTime')a.exposureMode='manual';if(k=='colorTemperature')a.whiteBalanceMode='manual';if(k=='focusDistance')a.focusMode='manual';try{await vs.applyConstraints({advanced:[a]})}catch(e){}}
 async function cm(e){const m=JSON.parse(e.data);
  if(m.t=='ping')snd({t:'pong',s:m.s,c:Date.now()});
@@ -192,7 +206,7 @@ async function cm(e){const m=JSON.parse(e.data);
 function rec(on){
  if(on&&!rc){const m=mt(),t0=Date.now();ck=[];rc=new MediaRecorder(new MediaStream([ot,dst.stream.getAudioTracks()[0]]),{mimeType:m,videoBitsPerSecond:15e6});
   rc.ondataavailable=e=>ck.push(e.data);
-  rc.onstop=()=>{lastB=new Blob(ck,{type:m});lastN=`cam${camN||''}_${iso(t0).replace(/[:.]/g,'-')}.${ext(m)}`;dl(lastB,lastN);snd({t:'rs',on:0,c:Date.now(),f:lastN});rc=null;$('rb').textContent='Record on this phone'};
+  rc.onstop=()=>{lastB=new Blob(ck,{type:m});lastN=`cam${camN||''}${nmv()?'_'+nmv():''}_${iso(t0).replace(/[:.]/g,'-')}.${ext(m)}`;dl(lastB,lastN);snd({t:'rs',on:0,c:Date.now(),f:lastN});rc=null;$('rb').textContent='Record on this phone'};
   rc.start(1000);snd({t:'rs',on:1,c:t0});$('rb').textContent='Stop recording'}
  else if(!on&&rc)rc.stop()}
 function setLook(v){lk=v;$('lk').value=v;const s=pc&&pc.getSenders().find(s=>s.track&&s.track.kind=='video'),pv=$('pv');
@@ -202,6 +216,15 @@ function beep(){const o=ac.createOscillator(),g=ac.createGain();o.frequency.valu
 function slate(m){const s=$('sl');s.style.display='flex';s.style.background='#fff';s.innerHTML='';beep();
  setTimeout(()=>{s.style.background='#000';s.innerHTML=`SCENE ${m.sc}<br>TAKE ${m.tk}<br>ACTION`},150);
  setTimeout(()=>s.style.display='none',2200);snd({t:'ac',c:Date.now()})}
+let crop=1;
+const clean=v=>(v||'').trim().replace(/[^\w\- ]/g,''),P2=()=>$('or2').dataset.p=='1',nmv=()=>clean($('nm').value),pre=()=>clean($('pn').value)||cur,dirv=()=>clean($($('M').classList.contains('hide')?'dr2':'dr').value)||'MultiCam';
+function keep(e){try{localStorage[e.id]=e.value}catch(x){}}
+function fmt(){if(pr)return;const r=+$('ar').value,R=$('or').dataset.p=='1'?1/r:r,W=R>=1?960:Math.round(960*R/2)*2,H=R>=1?Math.round(960/R/2)*2:960;pg.width=W;pg.height=H}
+function rn(c,n){c.name=clean(n);const l=c.name||'Cam '+(c.i+1);if(c.t)c.t.querySelector('.nl').textContent=l;const b=$('cbt'+c.i);if(b)b.textContent=l}
+function guides(){const o=$('ov'),f=$('fr'),w=o.clientWidth,h=o.clientHeight,a=+$('pa').value,g=$('pg3').checked;if(!w)return;let r=a?(P2()?1/a:a):w/h;const fw=Math.min(w,h*r);f.style.width=fw+'px';f.style.height=fw/r+'px';f.style.display=a||g?'block':'none';f.style.boxShadow=a?'0 0 0 999px rgba(0,0,0,.55)':'none';f.classList.toggle('g3',g)}
+function orient(){const b=$('or2'),p=!P2();b.dataset.p=p?'1':'0';b.textContent=p?'Portrait':'Landscape';guides();if(vs){const W=+$('rs').value,H=Math.round(W*9/16);vs.applyConstraints(p?{width:{ideal:H},height:{ideal:W}}:{width:{ideal:W},height:{ideal:H}}).catch(()=>{})}}
+['dr','dr2','pn','nm'].forEach(id=>{try{if(localStorage[id])$(id).value=localStorage[id]}catch(e){}});
+$('pv').onloadedmetadata=guides;onresize=guides;
 function theme(){const d=document.documentElement,l=d.dataset.theme=='light'?'dark':'light';d.dataset.theme=l;$('th').textContent=l=='light'?'Dark':'Light';try{localStorage.mct=l}catch(e){}}
 try{if(localStorage.mct=='light')theme()}catch(e){}
 </script></body></html>

@@ -62,17 +62,17 @@ public class NetPlugin extends Plugin {
   // Saves recordings to Downloads/MultiCam in chunks
   @PluginMethod public void save(PluginCall c) {
     try {
-      String n = c.getString("name"); byte[] d = Base64.decode(c.getString("data"), Base64.DEFAULT);
+      String n = c.getString("name"); String dr = c.getString("dir", "MultiCam").replaceAll("[^\\w\\- ]", ""); if (dr.isEmpty()) dr = "MultiCam"; byte[] d = Base64.decode(c.getString("data"), Base64.DEFAULT);
       OutputStream o = outs.get(n);
       if (o == null) {
         if (Build.VERSION.SDK_INT >= 29) {
           ContentValues v = new ContentValues();
           v.put(MediaStore.MediaColumns.DISPLAY_NAME, n);
-          v.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/MultiCam");
+          v.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/" + dr);
           Uri u = getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
           o = getContext().getContentResolver().openOutputStream(u);
         } else {
-          File dir = new File(getContext().getExternalFilesDir(null), "MultiCam"); dir.mkdirs();
+          File dir = new File(getContext().getExternalFilesDir(null), dr); dir.mkdirs();
           o = new FileOutputStream(new File(dir, n));
         }
         outs.put(n, o);

@@ -3,7 +3,7 @@ const pad=n=>String(n).padStart(3,'0'),ipf=async()=>{const r=(await N.ip()).ip;i
 const toast=t=>{let e=document.getElementById('tst');if(!e){e=document.createElement('div');e.id='tst';e.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;background:#35d07f;color:#000;padding:10px;border-radius:6px;z-index:20';document.body.append(e)}e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',4000)};
 N.start();
 /* save files to Downloads/MultiCam */
-window.dl=async(b,n)=>{const S=3145728;for(let o=0;o<b.size;o+=S){const u=new Uint8Array(await b.slice(o,o+S).arrayBuffer());let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));await N.save({name:n,data:btoa(s),done:o+S>=b.size})}toast('Saved to Downloads/MultiCam: '+n)};
+window.dl=async(b,n)=>{const S=3145728;for(let o=0;o<b.size;o+=S){const u=new Uint8Array(await b.slice(o,o+S).arrayBuffer());let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));await N.save({name:n,data:btoa(s),done:o+S>=b.size,dir:dirv()})}toast('Saved to Downloads/'+dirv()+': '+n)};
 /* monitor: 10-digit code = last two IP parts + 4-digit PIN, plus QR */
 window.relay=async c=>{try{const ip=await ipf();NT='http://127.0.0.1:8787/';c.code=pad(ip[2])+pad(ip[3])+(1000+Math.floor(Math.random()*9000));
  const e=$('cd'+c.i);e.textContent=c.code;const q=qrcode(0,'M');q.addData(c.code);q.make();e.insertAdjacentHTML('afterend','<img src="'+q.createDataURL(5)+'" style="background:#fff;padding:6px;border-radius:6px;display:block;margin-top:6px">');
