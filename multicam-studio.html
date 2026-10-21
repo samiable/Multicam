@@ -1,0 +1,207 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MultiCam Studio</title>
+<style>
+:root[data-theme=light]{--bg:#f1f3f5;--p:#ffffff;--l:#e0e5e9;--t:#14181c;--m:#56626d}
+:root{--bg:#101214;--p:#1a1e22;--l:#2b3238;--t:#e9edf0;--m:#8d98a3;--a:#e8412c;--g:#35d07f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:14px/1.4 system-ui,sans-serif}
+button,select,input,textarea{font:inherit;color:var(--t);background:var(--l);border:0;border-radius:6px;padding:9px 12px}
+button{cursor:pointer}button.a{background:var(--a);color:#fff}button.on{background:var(--g);color:#000}
+.p{background:var(--p);border-radius:8px;padding:12px;margin:8px}
+summary{cursor:pointer;margin-bottom:8px}summary h3{display:inline}
+h3{margin:0;font-size:15px;font-weight:700}
+.r{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+video,canvas{width:100%;background:#000;border-radius:6px;display:block}
+textarea{width:100%;height:64px;font-size:11px;margin:4px 0}
+input[type=range]{width:100%;padding:0}label{display:block;margin:6px 0;color:var(--m)}label span{color:var(--t)}
+.t{border:2px solid transparent;border-radius:8px;padding:4px}.t.pv{border-color:var(--g)}.t.pg{border-color:var(--a)}
+.lv{height:6px;width:70px;background:var(--l) linear-gradient(var(--g),var(--g)) no-repeat;background-size:0 100%;border-radius:3px}
+#sl{position:fixed;inset:0;background:#fff;color:#fff;display:none;z-index:9;align-items:center;justify-content:center;font-size:11vw;font-weight:900;text-align:center;line-height:1.1}
+.hide{display:none!important}.m{color:var(--m);font-style:normal}
+</style></head><body>
+<button id="th" onclick="theme()" style="position:fixed;top:8px;right:8px;z-index:30;font-size:12px;padding:6px 10px">Light</button>
+<div id="home" class="p"><h3>MultiCam Studio</h3><p class="m">Put every device on the same Wi-Fi, or connect the tablet to a phone hotspot. Video always stays on your local network.</p>
+<div class="r"><button class="a" onclick="mon()">Monitor (tablet)</button><button onclick="cam()">Camera (phone)</button></div></div>
+
+<div id="M" class="hide">
+<details class="p" open><summary><h3>Project</h3></summary><div class="r"><select id="pl" onchange="ld(this.value)"></select><button onclick="np()">New</button><button onclick="dp()">Duplicate</button><button onclick="xp()">Delete</button><button onclick="sv();alert('Saved')">Save</button></div></details>
+<details class="p" open><summary><h3>Cameras</h3></summary><div id="cl"></div><button class="a" onclick="addCam()">Add camera</button></details>
+<details class="p" open><summary><h3>Switcher</h3></summary><canvas id="pgm" width="960" height="540"></canvas>
+<div class="r" style="margin:8px 0"><button class="a" onclick="cut()">CUT</button><button onclick="dsv()">DISSOLVE</button><span class="m">Tap a feed to preview, then cut. Green is preview, red is program.</span></div><div class="g" id="tg"></div></details>
+<details class="p" open><summary><h3>Camera controls</h3></summary><div class="r" id="cb"></div><div id="cc"></div><div class="r"><button onclick="auto()">Auto exposure / WB / focus</button><select id="lkm" onchange="look(this.value)"><option value="none">Look: none</option><option value="vivid">Vivid</option><option value="cine">Cinematic</option><option value="bw">Black and white</option><option value="warm">Warm</option><option value="cool">Cool</option></select></div></details>
+<details class="p" open><summary><h3>Record and sync</h3></summary>
+<div class="r"><button class="a" id="rph" onclick="recPh()">REC PHONES</button><button class="a" id="rpg" onclick="recP()">REC PROGRAM</button><button class="a" onclick="recPh();recP()">REC ALL</button></div>
+<div class="r" style="margin-top:8px">Scene <input id="sc" value="1" size="4"> Take <input id="tk" type="number" value="1" style="width:70px"><button class="a" onclick="act()">ACTION</button><button onclick="dlLog()">Download sync log</button></div>
+<div id="sy" class="m" style="margin-top:8px"></div></details>
+<details class="p"><summary><h3>Color and timecode</h3></summary>
+<label>Brightness<input id="gb" type="range" min="0" max="200" value="100" oninput="grade.b=+this.value"></label>
+<label>Contrast<input id="gc" type="range" min="0" max="200" value="100" oninput="grade.c=+this.value"></label>
+<label>Saturation<input id="gs" type="range" min="0" max="200" value="100" oninput="grade.s=+this.value"></label>
+<div class="r"><input type="file" accept=".cube" onchange="loadLut(this.files[0])"><button onclick="pj().lut='';setLut('')">Clear LUT</button><span>LUT: <i id="ln" class="m">none</i></span></div>
+<label><input id="gt" type="checkbox" onchange="grade.tc=this.checked"> Burn timecode into program</label></details>
+</div>
+
+<div id="C" class="hide">
+<div class="p"><h3>Camera</h3><div class="r" style="margin-top:8px"><select id="fc"><option value="environment">Back</option><option value="user">Front</option></select><select id="rs"><option value="1280">720p</option><option value="1920" selected>1080p</option><option value="3840">4K</option></select><button class="a" onclick="startCam()">Start camera</button></div></div>
+<div class="p"><video id="pv" autoplay playsinline muted></video><div id="cs" class="m">Camera off</div></div>
+<div class="p"><div class="r"><input id="cd" inputmode="numeric" placeholder="Code from the monitor" style="flex:1;font-size:20px"><button class="a" onclick="join()">Connect</button></div>
+<details style="margin-top:8px"><summary class="m">Offline pairing (no internet)</summary>1) Paste the code from the monitor<textarea id="of"></textarea><button onclick="reply()">Make reply</button>
+<div style="margin-top:8px">2) Send this reply back to the monitor</div><textarea id="an" readonly></textarea><button onclick="cpy('an')">Copy reply</button></details></div>
+<div class="p r"><select id="lk" onchange="look(this.value)"><option value="none">Look: none</option><option value="vivid">Vivid</option><option value="cine">Cinematic</option><option value="bw">Black and white</option><option value="warm">Warm</option><option value="cool">Cool</option></select><button id="rb" class="a" onclick="rec(!rc)">Record on this phone</button><button onclick="lastB&&dl(lastB,lastN)">Save last recording</button></div>
+</div>
+<div id="sl"></div>
+
+<script>
+const $=id=>document.getElementById(id),cfg={iceServers:[]},iso=t=>new Date(t).toISOString();
+const LK={none:'none',vivid:'saturate(150%) contrast(110%)',cine:'contrast(120%) saturate(85%) sepia(15%)',bw:'grayscale(100%) contrast(115%)',warm:'sepia(25%) saturate(120%)',cool:'hue-rotate(-12deg) saturate(110%)'};
+const mt=()=>['video/mp4;codecs=avc1,mp4a','video/webm;codecs=vp9,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
+const ext=m=>m.includes('mp4')?'mp4':'webm';
+function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
+function gather(pc){return new Promise(r=>{if(pc.iceGatheringState=='complete')return r();pc.onicegatheringstatechange=()=>pc.iceGatheringState=='complete'&&r();setTimeout(r,3000)})}
+function cpy(id){const e=$(id);e.select();navigator.clipboard?navigator.clipboard.writeText(e.value):document.execCommand('copy')}
+const z=async(s,d)=>{const t=new(d?DecompressionStream:CompressionStream)('deflate'),w=t.writable.getWriter();w.write(d?Uint8Array.from(atob(s),c=>c.charCodeAt(0)):new TextEncoder().encode(s));w.close();const b=new Uint8Array(await new Response(t.readable).arrayBuffer());return d?new TextDecoder().decode(b):btoa(String.fromCharCode(...b))};
+const NT='https://ntfy.sh/',put=(k,v)=>fetch(NT+k,{method:'POST',body:v});
+async function get(k,ms,iv=2000){const end=Date.now()+ms;while(Date.now()<end){try{const r=await fetch(NT+k+'/json?poll=1&since=all'),L=(await r.text()).trim().split('\n').filter(Boolean).reverse();for(const l of L){const j=JSON.parse(l);if(j.event=='message')return j.message}}catch(e){}await new Promise(r=>setTimeout(r,iv))}}
+async function relay(c){try{c.code=String(Math.floor(1e7+Math.random()*9e7));$('cd'+c.i).textContent=c.code;await put('mcs'+c.code+'o',await z(JSON.stringify(c.pc.localDescription)));const a=await get('mcs'+c.code+'a',6e5,3000);if(a)await c.pc.setRemoteDescription(JSON.parse(await z(a,1)))}catch(e){$('st'+c.i).textContent='no internet for the code, use offline pairing';$('cd'+c.i).textContent='-'}}
+const tx=(c,m)=>c.dc&&c.dc.readyState=='open'&&c.dc.send(JSON.stringify(m));
+/* ---------- MONITOR ---------- */
+let cams=[],sel=-1,pvI=-1,pgI=-1,dis=0,grade={b:100,c:100,s:100,tc:0},lut=null,lutMap,log=[],P={},cur='Project 1',AC,mixD,pr,phRec=0,isoR=[],pch=[];
+try{P=JSON.parse(localStorage.mcs||'{}');cur=localStorage.mcc||cur}catch(e){}
+const pj=()=>P[cur]||(P[cur]={g:{b:100,c:100,s:100,tc:0},lut:'',ln:'',log:[],sc:'1',tk:1,cs:{}});
+function sv(){try{const p=pj();p.g=grade;p.log=log;p.sc=$('sc').value;p.tk=+$('tk').value;localStorage.mcs=JSON.stringify(P);localStorage.mcc=cur}catch(e){}}
+function list(){$('pl').innerHTML=Object.keys(P).map(n=>`<option ${n==cur?'selected':''}>${n}</option>`).join('')}
+function ld(n){if(n)sv();if(n)cur=n;const p=pj();grade=p.g;log=p.log;$('sc').value=p.sc;$('tk').value=p.tk;setLut(p.lut,p.ln);['b','c','s'].forEach(k=>$('g'+k).value=grade[k]);$('gt').checked=!!grade.tc;list();sync_ui()}
+function np(){const n=prompt('Project name');if(n&&!P[n]){sv();cur=n;ld()}}
+function dp(){const n=prompt('Name for the copy',cur+' copy');if(n){sv();P[n]=JSON.parse(JSON.stringify(pj()));cur=n;ld()}}
+function xp(){if(Object.keys(P).length>1&&confirm('Delete '+cur+'?')){delete P[cur];cur=Object.keys(P)[0];ld()}}
+function mon(){$('home').classList.add('hide');$('M').classList.remove('hide');actx();ld();draw();setInterval(sv,5000)}
+function actx(){if(!AC){AC=new AudioContext();mixD=AC.createMediaStreamDestination()}return AC}
+/* LUT */
+function parseCube(t){let n=0,d=[];for(const l of t.split('\n')){const s=l.trim();if(s.startsWith('LUT_3D_SIZE'))n=+s.split(/\s+/)[1];else if(/^[-\d.]/.test(s)){const q=s.split(/\s+/).map(Number);if(q.length==3)d.push(...q)}}return n&&d.length==n*n*n*3?{n,d:new Float32Array(d)}:null}
+function setLut(t,name){lut=t?parseCube(t):null;if(lut){lutMap=new Uint16Array(256);for(let i=0;i<256;i++)lutMap[i]=Math.round(i*(lut.n-1)/255)}$('ln').textContent=lut?name+' ('+lut.n+'^3)':'none'}
+function loadLut(f){if(!f)return;const r=new FileReader();r.onload=()=>{if(!parseCube(r.result))return alert('Not a valid .cube 3D LUT');pj().lut=r.result;pj().ln=f.name;setLut(r.result,f.name)};r.readAsText(f)}
+function applyLut(im){const{n,d}=lut,D=im.data,m=lutMap,nn=n*n;for(let i=0;i<D.length;i+=4){const k=(m[D[i+2]]*nn+m[D[i+1]]*n+m[D[i]])*3;D[i]=d[k]*255;D[i+1]=d[k+1]*255;D[i+2]=d[k+2]*255}}
+/* connect */
+async function addCam(){
+ const i=cams.length,c={i,pc:new RTCPeerConnection(cfg),off:0,rtt:1e9,caps:{},z:1};cams.push(c);
+ $('cl').insertAdjacentHTML('beforeend',`<div class="p" style="margin:0 0 8px"><b>Cam ${i+1}</b> <i class="m" id="st${i}">preparing</i><div class="m">Enter this code on the phone</div><div id="cd${i}" style="font:700 34px monospace;letter-spacing:4px">...</div><details style="margin-top:8px"><summary class="m">Offline pairing (no internet)</summary><div class="m">1) Send this code to the phone</div><textarea readonly id="of${i}"></textarea><button onclick="cpy('of${i}')">Copy code</button><div class="m" style="margin-top:8px">2) Paste the phone reply</div><textarea id="an${i}"></textarea><button class="a" onclick="conn(${i})">Connect</button></details></div>`);
+ c.dc=c.pc.createDataChannel('c');c.dc.onmessage=e=>onMsg(c,JSON.parse(e.data));
+ c.dc.onopen=()=>{tx(c,{t:'id',n:i+1});sync(c);if(sel<0)selCam(i)};
+ c.pc.addTransceiver('video',{direction:'recvonly'});c.pc.addTransceiver('audio',{direction:'recvonly'});
+ c.pc.ontrack=e=>{if(c.ms)return;try{e.receiver.jitterBufferTarget=0;e.receiver.playoutDelayHint=0}catch(x){}c.ms=e.streams[0];hook(c)};
+ c.pc.onconnectionstatechange=()=>$('st'+i).textContent=c.pc.connectionState;
+ await c.pc.setLocalDescription(await c.pc.createOffer());await gather(c.pc);
+ $('of'+i).value=btoa(JSON.stringify(c.pc.localDescription));$('st'+i).textContent='waiting for phone';relay(c);
+ $('cb').insertAdjacentHTML('beforeend',`<button id="cbt${i}" onclick="selCam(${i})">Cam ${i+1}</button>`);
+}
+function conn(i){try{cams[i].pc.setRemoteDescription(JSON.parse(atob($('an'+i).value.trim())))}catch(e){alert('Reply code is not valid')}}
+function sync(c){c.rtt=1e9;let n=0;const t=setInterval(()=>{tx(c,{t:'ping',s:Date.now()});if(++n>=10)clearInterval(t)},120);setTimeout(()=>sync(c),30000)}
+function onMsg(c,m){
+ if(m.t=='pong'){const r=Date.now()-m.s;if(r<c.rtt){c.rtt=r;c.off=m.c-(m.s+r/2)}sync_ui()}
+ else if(m.t=='caps'){c.caps=m.caps;c.res=m.w+'x'+m.h;const s=pj().cs[c.i]||{};for(const k in s)tx(c,{t:'cap',k,v:s[k]});if(sel==c.i)sliders();sync_ui()}
+ else if(m.t=='rs'){log.push({ev:m.on?'phone_rec_start':'phone_rec_stop',cam:c.i+1,monitor_time:iso(m.c-c.off),cam_clock:iso(m.c),offset_ms:Math.round(c.off),rtt_ms:Math.round(c.rtt),file:m.f||''});sync_ui()}
+ else if(m.t=='ac'){log.push({ev:'phone_action',cam:c.i+1,monitor_time:iso(m.c-c.off)});sync_ui()}
+}
+function sync_ui(){$('sy').innerHTML=cams.map(c=>`Cam ${c.i+1}: offset ${Math.round(c.off)} ms, delay ${c.rtt<1e9?Math.round(c.rtt):'-'} ms, ${c.res||''}`).join('<br>')+`<br>${log.length} sync events logged`}
+/* feeds, audio */
+function hook(c){
+ actx();const t=document.createElement('div');t.className='t';
+ t.innerHTML=`<video autoplay playsinline muted></video><div class="r"><b>Cam ${c.i+1}</b><span class="lv"></span></div><div class="r"><button class="on" title="Include audio in program recording">Mix</button><button title="Listen on this device">Listen</button><button title="Also record this raw feed on the tablet">ISO rec</button></div><input type="range" min="1" max="4" step=".1" value="1" title="Software zoom">`;
+ $('tg').append(t);c.t=t;c.v=t.children[0];c.lvEl=t.querySelector('.lv');c.v.srcObject=c.ms;
+ const au=new Audio();au.srcObject=c.ms;au.muted=true;au.play().catch(()=>{});
+ const s=AC.createMediaStreamSource(c.ms);c.an=AC.createAnalyser();c.an.fftSize=256;c.gm=AC.createGain();c.gl=AC.createGain();c.gl.gain.value=0;
+ s.connect(c.an);s.connect(c.gm);s.connect(c.gl);c.gm.connect(mixD);c.gl.connect(AC.destination);
+ const[b1,b2,b3]=t.querySelectorAll('button');
+ b1.onclick=()=>{b1.classList.toggle('on');c.gm.gain.value=+b1.classList.contains('on')};
+ b2.onclick=()=>{b2.classList.toggle('on');c.gl.gain.value=+b2.classList.contains('on')};
+ b3.onclick=()=>{b3.classList.toggle('on');c.iso=b3.classList.contains('on')};
+ t.querySelector('input').oninput=e=>c.z=+e.target.value;
+ c.v.onclick=()=>{pvI=c.i;selCam(c.i);marks()};
+ if(pgI<0){pgI=c.i;}else if(pvI<0)pvI=c.i;marks();
+}
+function marks(){cams.forEach(c=>c.t&&(c.t.className='t'+(c.i==pvI?' pv':'')+(c.i==pgI?' pg':'')))}
+function cut(){if(pvI<0)return;[pgI,pvI]=[pvI,pgI<0?pvI:pgI];marks()}
+function dsv(){if(pvI>=0&&pgI>=0&&!dis)dis={f:pgI,t:pvI,t0:Date.now()}}
+/* compositor */
+const pg=$('pgm'),X=pg.getContext('2d',{willReadFrequently:true}),bf=new Uint8Array(256);
+function dc(i,a){const c=cams[i],v=c&&c.v;if(!v||!v.videoWidth)return;const W=pg.width,H=pg.height,sw=v.videoWidth/c.z,sh=v.videoHeight/c.z,k=Math.min(W/sw,H/sh);X.globalAlpha=a;X.drawImage(v,(v.videoWidth-sw)/2,(v.videoHeight-sh)/2,sw,sh,(W-sw*k)/2,(H-sh*k)/2,sw*k,sh*k)}
+function draw(){
+ const W=pg.width,H=pg.height;X.globalAlpha=1;X.filter='none';X.fillStyle='#000';X.fillRect(0,0,W,H);
+ X.filter=`brightness(${grade.b}%) contrast(${grade.c}%) saturate(${grade.s}%)`;
+ if(dis){const p=Math.min(1,(Date.now()-dis.t0)/800);dc(dis.f,1);dc(dis.t,p);if(p>=1){pgI=dis.t;pvI=dis.f;dis=0;marks()}}else dc(pgI,1);
+ X.globalAlpha=1;X.filter='none';
+ if(lut){const im=X.getImageData(0,0,W,H);applyLut(im);X.putImageData(im,0,0)}
+ if(grade.tc){const d=new Date(),f=Math.floor(d.getMilliseconds()*.03);X.font='bold 28px monospace';X.fillStyle='rgba(0,0,0,.6)';X.fillRect(10,H-46,230,36);X.fillStyle='#fff';X.fillText([d.getHours(),d.getMinutes(),d.getSeconds(),f].map(n=>String(n).padStart(2,'0')).join(':'),20,H-18)}
+ cams.forEach(c=>{if(c.an){c.an.getByteTimeDomainData(bf);let m=0;for(const b of bf)m=Math.max(m,Math.abs(b-128));c.lvEl.style.backgroundSize=Math.min(100,m/1.1)+'% 100%'}});
+ requestAnimationFrame(draw)}
+/* camera controls */
+function selCam(i){sel=i;cams.forEach(c=>{const b=$('cbt'+c.i);b&&b.classList.toggle('on',c.i==i)});sliders()}
+function sliders(){const c=cams[sel],b=$('cc');b.innerHTML='';if(!c)return;
+ for(const k in c.caps){const q=c.caps[k],d=document.createElement('label'),sv0=(pj().cs[sel]||{})[k];
+  d.innerHTML=`${k} <span>${sv0??q.v??''}</span><input type="range" min="${q.min}" max="${q.max}" step="${q.step||(q.max-q.min)/100}" value="${sv0??q.v??q.min}">`;
+  d.lastChild.oninput=e=>{const v=+e.target.value;d.children[0].textContent=v;(pj().cs[sel]=pj().cs[sel]||{})[k]=v;tx(c,{t:'cap',k,v})};b.append(d)}
+ if(!Object.keys(c.caps).length)b.innerHTML='<p class="m">This phone browser exposes no camera controls. Software zoom on the feed tile still works.</p>'}
+const auto=()=>{if(cams[sel]){delete pj().cs[sel];tx(cams[sel],{t:'auto'})}};
+const look=v=>{$('lkm').value=v;$('lk')&&($('lk').value=v);if(cams[sel])tx(cams[sel],{t:'look',v});else setLook(v)};
+/* recording */
+function recPh(){phRec=!phRec;const at=Date.now()+700;cams.forEach(c=>tx(c,{t:'rec',on:phRec,at:at+c.off}));$('rph').textContent=phRec?'STOP PHONES':'REC PHONES'}
+function recP(){
+ if(pr){pr.stop();isoR.forEach(r=>r.stop());return}
+ const s=new MediaStream([...pg.captureStream(30).getVideoTracks(),...mixD.stream.getAudioTracks()]),m=mt(),t0=Date.now();
+ pr=new MediaRecorder(s,{mimeType:m,videoBitsPerSecond:12e6});pch=[];pr.ondataavailable=e=>pch.push(e.data);
+ pr.onstop=()=>{dl(new Blob(pch,{type:m}),`${cur}_program_${iso(t0).replace(/[:.]/g,'-')}.${ext(m)}`);log.push({ev:'program_rec_stop',monitor_time:iso(Date.now())});pr=0;isoR=[];$('rpg').textContent='REC PROGRAM'};
+ pr.start(1000);log.push({ev:'program_rec_start',monitor_time:iso(t0)});$('rpg').textContent='STOP PROGRAM';
+ isoR=cams.filter(c=>c.iso&&c.ms).map(c=>{const ch=[],r=new MediaRecorder(c.ms,{mimeType:m});r.ondataavailable=e=>ch.push(e.data);r.onstop=()=>dl(new Blob(ch,{type:m}),`${cur}_cam${c.i+1}_feed_${iso(t0).replace(/[:.]/g,'-')}.${ext(m)}`);r.start(1000);return r});
+ sync_ui()}
+function act(){const at=Date.now()+1200,sc=$('sc').value,tk=$('tk').value;cams.forEach(c=>tx(c,{t:'action',at:at+c.off,sc,tk}));log.push({ev:'action_sent',scene:sc,take:tk,planned_monitor_time:iso(at)});$('tk').value=+tk+1;sv();sync_ui()}
+const dlLog=()=>dl(new Blob([JSON.stringify({project:cur,exported:iso(Date.now()),events:log},null,1)],{type:'application/json'}),`${cur}_sync_log.json`);
+/* ---------- CAMERA ---------- */
+let st,pc,dc2,ac,dst,vs,ot,rc,ck=[],lk='none',cx,cvn=document.createElement('canvas'),lastB,lastN,camN='';
+function cam(){$('home').classList.add('hide');$('C').classList.remove('hide')}
+async function startCam(){
+ st=await navigator.mediaDevices.getUserMedia({video:{facingMode:$('fc').value,width:{ideal:+$('rs').value},frameRate:{ideal:30}},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+ $('pv').srcObject=st;vs=ot=st.getVideoTracks()[0];ac=new AudioContext();dst=ac.createMediaStreamDestination();
+ if(st.getAudioTracks().length)ac.createMediaStreamSource(st).connect(dst);
+ try{await navigator.wakeLock.request('screen')}catch(e){}
+ $('cs').textContent='Camera ready. Now connect to the monitor.'}
+async function join(){
+ const code=$('cd').value.trim();if(!st)try{await startCam()}catch(e){return alert('Allow camera access first')}
+ $('cs').textContent='Looking for the monitor...';const o=await get('mcs'+code+'o',30000);
+ if(!o)return $('cs').textContent='Nothing found for that code. Check it, or use offline pairing.';
+ await reply(JSON.parse(await z(o,1)));await put('mcs'+code+'a',await z(JSON.stringify(pc.localDescription)));$('cs').textContent='Waiting for the monitor...'}
+async function reply(D){
+ if(!st)return alert('Start the camera first');
+ pc=new RTCPeerConnection(cfg);
+ pc.ondatachannel=e=>{dc2=e.channel;dc2.onmessage=cm;dc2.onopen=()=>{sendCaps();$('cs').textContent='Connected to monitor'}};
+ pc.onconnectionstatechange=()=>{if(pc.connectionState=='connected')pc.getSenders().forEach(s=>{if(s.track&&s.track.kind=='video'){const p=s.getParameters();if(p.encodings&&p.encodings[0]){p.encodings[0].maxBitrate=8e6;s.setParameters(p).catch(()=>{})}}})};
+ try{await pc.setRemoteDescription(D&&D.sdp?D:JSON.parse(atob($('of').value.trim())))}catch(e){return alert('Code is not valid')}
+ pc.addTrack(ot,st);pc.addTrack(dst.stream.getAudioTracks()[0],dst.stream);
+ await pc.setLocalDescription(await pc.createAnswer());await gather(pc);
+ $('an').value=btoa(JSON.stringify(pc.localDescription))}
+const snd=m=>dc2&&dc2.readyState=='open'&&dc2.send(JSON.stringify(m));
+function sendCaps(){const t=vs.getCapabilities?vs.getCapabilities():{},s=vs.getSettings(),o={};
+ for(const k of['zoom','exposureCompensation','iso','exposureTime','colorTemperature','focusDistance'])if(t[k]&&t[k].max!=null)o[k]={min:t[k].min,max:t[k].max,step:t[k].step||0,v:s[k]};
+ snd({t:'caps',caps:o,w:s.width,h:s.height})}
+async function setC(k,v){const a={[k]:v};if(k=='iso'||k=='exposureTime')a.exposureMode='manual';if(k=='colorTemperature')a.whiteBalanceMode='manual';if(k=='focusDistance')a.focusMode='manual';try{await vs.applyConstraints({advanced:[a]})}catch(e){}}
+async function cm(e){const m=JSON.parse(e.data);
+ if(m.t=='ping')snd({t:'pong',s:m.s,c:Date.now()});
+ else if(m.t=='id')camN=m.n;
+ else if(m.t=='cap')setC(m.k,m.v);
+ else if(m.t=='auto'){for(const k of['exposureMode','whiteBalanceMode','focusMode'])try{await vs.applyConstraints({advanced:[{[k]:'continuous'}]})}catch(x){}}
+ else if(m.t=='look')setLook(m.v);
+ else if(m.t=='rec')setTimeout(()=>rec(m.on),Math.max(0,m.at-Date.now()));
+ else if(m.t=='action')setTimeout(()=>slate(m),Math.max(0,m.at-Date.now()))}
+function rec(on){
+ if(on&&!rc){const m=mt(),t0=Date.now();ck=[];rc=new MediaRecorder(new MediaStream([ot,dst.stream.getAudioTracks()[0]]),{mimeType:m,videoBitsPerSecond:15e6});
+  rc.ondataavailable=e=>ck.push(e.data);
+  rc.onstop=()=>{lastB=new Blob(ck,{type:m});lastN=`cam${camN||''}_${iso(t0).replace(/[:.]/g,'-')}.${ext(m)}`;dl(lastB,lastN);snd({t:'rs',on:0,c:Date.now(),f:lastN});rc=null;$('rb').textContent='Record on this phone'};
+  rc.start(1000);snd({t:'rs',on:1,c:t0});$('rb').textContent='Stop recording'}
+ else if(!on&&rc)rc.stop()}
+function setLook(v){lk=v;$('lk').value=v;const s=pc&&pc.getSenders().find(s=>s.track&&s.track.kind=='video'),pv=$('pv');
+ if(v=='none')ot=vs;else{cvn.width=pv.videoWidth;cvn.height=pv.videoHeight;cx=cvn.getContext('2d');ot=cvn.captureStream(30).getVideoTracks()[0];(function L(){if(lk!=v)return;cx.filter=LK[v];cx.drawImage(pv,0,0);requestAnimationFrame(L)})()}
+ s&&s.replaceTrack(ot)}
+function beep(){const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=1000;g.gain.value=.8;o.connect(g);g.connect(dst);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.2)}
+function slate(m){const s=$('sl');s.style.display='flex';s.style.background='#fff';s.innerHTML='';beep();
+ setTimeout(()=>{s.style.background='#000';s.innerHTML=`SCENE ${m.sc}<br>TAKE ${m.tk}<br>ACTION`},150);
+ setTimeout(()=>s.style.display='none',2200);snd({t:'ac',c:Date.now()})}
+function theme(){const d=document.documentElement,l=d.dataset.theme=='light'?'dark':'light';d.dataset.theme=l;$('th').textContent=l=='light'?'Dark':'Light';try{localStorage.mct=l}catch(e){}}
+try{if(localStorage.mct=='light')theme()}catch(e){}
+</script></body></html>
